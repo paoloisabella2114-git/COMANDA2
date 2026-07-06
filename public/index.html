@@ -129,18 +129,44 @@ $(document).ready(function() {
         $('#footer-org').text('Sagra');
     });
 
-    $.getJSON('/api/info-serata', function(data) {
-        const idAttuale = data.idSerata;
-        const idSalvato = localStorage.getItem('sagra_id_serata');
-        if(idSalvato !== idAttuale) {
-            localStorage.clear();
-            sessionStorage.clear();
-            localStorage.setItem('sagra_id_serata', idAttuale);
-        }
-        if(localStorage.getItem('ordine_completo_string')) {
-            document.getElementById('box-recupero').style.display = 'block';
+ $(document).ready(function() {
+    // Usiamo $.ajax invece di $.getJSON per avere più controllo sulla cache
+    $.ajax({
+        url: '/api/config',
+        type: 'GET',
+        cache: false, // <-- Impedisce al browser di usare la versione memorizzata
+        dataType: 'json',
+        success: function(config) {
+            configData = config;
+            // Aggiorna il logo
+            if(config.logo_url) $('#event-logo').attr('src', config.logo_url);
+            
+            // Aggiorna il titolo della sezione
+            $('#specialita-titolo').text(config.titolo_sezione);
+            
+            // Aggiorna la lista piatti
+            let piattiHtml = '';
+            if(config.specialita && Array.isArray(config.specialita)) {
+                config.specialita.forEach(function(piatto) {
+                    piattiHtml += `<span class="piatto-giorno">${piatto}</span>`;
+                });
+                $('#lista-piatti').html(piattiHtml);
+            }
+            
+            // Aggiorna contatti
+            const tel = config.telefono_assistenza || '';
+            $('#wa-numero').text(tel);
+            $('#wa-link-href').attr('href', 'tel:+39' + tel);
+            $('#footer-org').text(config.footer_organizzazione);
+        },
+        error: function() {
+            console.error("Errore caricamento config");
+            $('#lista-piatti').html('<span class="piatto-giorno">Configurazione non disponibile</span>');
         }
     });
+
+    // ... resto del codice (info-serata, ecc) ...
+});
 
     sessionStorage.clear();
 });
